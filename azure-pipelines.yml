@@ -3,23 +3,29 @@ trigger:
     include:
       - main
 
+variables:
+  dockerHubUser: aquils        # 👈 replace with your DockerHub username
+  imageName: bitegenius
+
 pool:
   vmImage: ubuntu-latest
 
 stages:
-- stage: Build
-  displayName: Docker Build Stage
+- stage: BuildAndPush
+  displayName: Build and Push Docker Image
   jobs:
-  - job: BuildDockerImage
-    displayName: Build Docker Image
+  - job: DockerCI
+    displayName: Docker Build and Push
     steps:
     - checkout: self
 
     - task: Docker@2
-      displayName: Build Docker Image
+      displayName: Build and Push Image
       inputs:
-        command: build
+        command: buildAndPush
+        containerRegistry: dockerhub-connection
+        repository: $(dockerHubUser)/$(imageName)
         dockerfile: Dockerfile
-        repository: bitegenius
         tags: |
-          ci-test
+          latest
+          $(Build.BuildId)
