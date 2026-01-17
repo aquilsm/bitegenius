@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>⭐ Your saved recipes</h2>
+
+{% if recipes %}
+    {% for recipe in recipes %}
+        <div style="
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        ">
+            <h3>{{ recipe.name }}</h3>
+
+            <p>
+                ⏱ {{ recipe.prep_time_minutes }} minutes
+            </p>
+
+            <a href="/recipe/{{ recipe.id }}/">
+                View recipe →
+            </a>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>
+        You haven’t saved any recipes yet.
+    </p>
+{% endif %}
+
+{% endblock %}

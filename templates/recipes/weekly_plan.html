@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load recipe_extras %}
+
+{% block content %}
+
+<h2>📅 Your plan for this week</h2>
+<p style="color: #666; font-size: 14px;">
+    Planning even 2–3 meals makes cooking easier.
+</p>
+
+<hr>
+
+{% for day, label in days %}
+    <div style="
+        padding: 12px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: {% if day == today_index %}#e6f7ff{% else %}#fafafa{% endif %};
+    ">
+        <strong style="font-size: 16px;">
+            {{ label }}
+            {% if day == today_index %}
+                <span style="font-size: 12px; color: #0077cc;">(Today)</span>
+            {% endif %}
+        </strong>
+
+        {% with planned_day=planned|get_item:day %}
+            {% if planned_day %}
+                <div style="margin-top: 6px;">
+                    <strong>{{ planned_day.recipe.name }}</strong><br>
+
+                    <span style="font-size: 13px; color: #666;">
+                        {% if planned_day.recipe.is_user_submitted %}
+                            🧑‍🍳 Community
+                        {% else %}
+                            ⭐ Official
+                        {% endif %}
+                        · ⏱ {{ planned_day.recipe.prep_time_minutes }} min
+                    </span><br>
+                    <form
+                        method="post"
+                        action="{% url 'move-weekly-plan' planned_day.id %}"
+                        style="display: inline;"
+                    >
+                        {% csrf_token %}
+                        <select name="new_day" onchange="this.form.submit()">
+                            <option disabled selected>Move to…</option>
+                            {% for d, d_label in days %}
+                                {% if d != day %}
+                                    <option value="{{ d }}">{{ d_label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <a href="{% url 'recipe-detail' planned_day.recipe.id %}">
+                        <button>🍳 Cook now</button>
+                    </a>
+                    <a
+                        href="{% url 'remove-from-weekly-plan' planned_day.id %}"
+                        style="font-size: 13px; color: #999;"
+                    >
+                        Remove
+                    </a>
+                </div>
+            {% else %}
+                <div style="margin-top: 6px; color: #777;">
+                    No recipe planned —
+                    <a href="/recommendations/">Add one</a>
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+{% endfor %}
+
+<hr>
+
+<h3>🛒 Grocery preview</h3>
+
+{% if grocery_list %}
+    <ul>
+        {% for item, count in grocery_list %}
+            <li>
+                {{ item }}
+                {% if count > 1 %}
+                    ({{ count }} recipes)
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p style="color: #666; font-size: 14px;">
+        🎉 You don’t need to buy anything extra for this week!
+    </p>
+{% endif %}
+
+{% endblock %}

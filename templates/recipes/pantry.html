@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>What ingredients do you have?</h2>
+
+<p>
+    Add the main ingredients in your kitchen.
+    Don’t worry about spices or exact amounts.
+</p>
+
+<p style="color: #555;">
+    Example: <em>eggs, onion, tomato</em>
+</p>
+
+{% if error %}
+    <p style="color: red;">{{ error }}</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+
+    <input
+        type="text"
+        name="ingredients"
+        placeholder="Type ingredients separated by commas"
+        value="{{ ingredients|default:'' }}"
+        style="width: 300px;"
+    >
+
+    <div
+        id="suggestions"
+        style="
+            border: 1px solid #ccc;
+            max-width: 300px;
+            display: none;
+            background: white;
+        "
+    ></div>
+
+    <br><br>
+
+    <p style="font-size: 13px; color: #666;">
+        💡 We ignore common staples like oil, salt, and water
+        when suggesting recipes.
+    </p>
+
+    <button type="submit">
+        Show me what I can cook
+    </button>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const input = document.querySelector('input[name="ingredients"]');
+    const suggestionsBox = document.getElementById("suggestions");
+
+    input.addEventListener("input", async function () {
+        const value = input.value;
+        const parts = value.split(",");
+        const lastPart = parts[parts.length - 1].trim();
+
+        if (lastPart.length < 2) {
+            suggestionsBox.style.display = "none";
+            return;
+        }
+
+        const response = await fetch(
+            `/api/ingredient-suggestions/?q=${lastPart}`
+        );
+        const suggestions = await response.json();
+
+        if (suggestions.length === 0) {
+            suggestionsBox.style.display = "none";
+            return;
+        }
+
+        suggestionsBox.innerHTML = "";
+        suggestionsBox.style.display = "block";
+
+        suggestions.forEach(item => {
+            const div = document.createElement("div");
+            div.textContent = item;
+            div.style.padding = "6px";
+            div.style.cursor = "pointer";
+
+            div.onclick = () => {
+                parts[parts.length - 1] = " " + item;
+                input.value = parts.join(",").replace(/^,/, "");
+                suggestionsBox.style.display = "none";
+            };
+
+            suggestionsBox.appendChild(div);
+        });
+    });
+
+});
+</script>
+
+{% endblock %}

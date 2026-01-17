@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BiteGenius</title>
+    <meta charset="utf-8">
+</head>
+<body>
+
+    <h1>BiteGenius</h1>
+    
+    {% if user.is_authenticated %}
+        👋 Hi {{ user.username }} |
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" style="background:none;border:none;cursor:pointer;">
+            Logout
+            </button>
+        </form>
+    {% else %}
+        <a href="{% url 'login' %}">Login</a>
+    {% endif %}
+
+
+    <hr>
+
+    <a href="/add-recipe/">➕ Add a recipe</a>
+    <a href="/favorites/">
+        ⭐ Favorites
+    </a>
+    
+    <hr>
+
+    {% block content %}
+    {% endblock %}
+
+</body>
+</html>

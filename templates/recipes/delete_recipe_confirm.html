@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Delete recipe</h2>
+
+<p>
+    Are you sure you want to delete:
+</p>
+
+<p style="
+    font-weight: bold;
+    font-size: 18px;
+">
+    {{ recipe.name }}
+</p>
+
+<p style="color: #900;">
+    This action cannot be undone.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <button style="
+        background-color: #d9534f;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        margin-right: 10px;
+    ">
+        Yes, delete this recipe
+    </button>
+
+    <a href="/recipe/{{ recipe.id }}/">
+        Cancel
+    </a>
+</form>
+
+{% endblock %}

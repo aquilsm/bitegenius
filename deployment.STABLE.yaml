@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "24"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"bitegenius-web","namespace":"bitegenius"},"spec":{"replicas":2,"selector":{"matchLabels":{"app":"bitegenius"}},"template":{"metadata":{"labels":{"app":"bitegenius"}},"spec":{"containers":[{"envFrom":[{"secretRef":{"name":"bitegenius-secrets"}}],"image":"aquils/bitegenius:latest","livenessProbe":{"failureThreshold":5,"initialDelaySeconds":30,"periodSeconds":10,"tcpSocket":{"port":8000},"timeoutSeconds":2},"name":"bitegenius","ports":[{"containerPort":8000}],"readinessProbe":{"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":5,"tcpSocket":{"port":8000},"timeoutSeconds":2},"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}}]}}}}
+  creationTimestamp: "2026-01-10T11:08:04Z"
+  generation: 26
+  name: bitegenius-web
+  namespace: bitegenius
+  resourceVersion: "240489"
+  uid: 2868e221-4f05-424b-9124-ce51012340f5
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: bitegenius
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-01-11T19:18:03+05:30"
+      creationTimestamp: null
+      labels:
+        app: bitegenius
+    spec:
+      containers:
+      - envFrom:
+        - secretRef:
+            name: bitegenius-secrets
+        image: aquils/bitegenius:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 5
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 8000
+          timeoutSeconds: 2
+        name: bitegenius
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          tcpSocket:
+            port: 8000
+          timeoutSeconds: 2
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2026-01-11T10:52:11Z"
+    lastUpdateTime: "2026-01-11T10:52:11Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-01-11T13:47:54Z"
+    lastUpdateTime: "2026-01-11T13:48:33Z"
+    message: ReplicaSet "bitegenius-web-d65c965c5" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 26
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1

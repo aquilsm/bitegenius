@@ -15,10 +15,28 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
 from django.urls import path, include
+from django.http import JsonResponse
+from django.http import HttpResponse
+from django.contrib.auth import views as auth_views
+
+# def home(request):
+#      return JsonResponse({"message": "Welcome to BiteGenius API"})
+
+
+def healthz(request):
+    return HttpResponse("ok")
 
 urlpatterns = [
+    # path('', home),
+    path("healthz/", healthz),
     path('admin/', admin.site.urls),
     path('api/', include('recipes.urls')),
+    path("", include("recipes.urls")),  # keep your app routes
+    # ✅ Auth (CUSTOM)
+    path("accounts/", include("users.urls")),
+
+    # ✅ Logout only (safe to keep built-in)
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    
 ]

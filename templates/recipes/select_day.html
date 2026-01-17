@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Add "{{ recipe.name }}" to your week</h2>
+
+<ul>
+{% for day, label in days %}
+    <div style="margin-bottom: 8px;">
+        <a href="{% url 'add-to-weekly-plan' recipe.id day %}">
+            <button
+                {% if day == suggested_day %}
+                    style="background:#e6f7ff; border:1px solid #1890ff;"
+                {% endif %}
+            >
+                {{ label }}
+                {% if day == suggested_day %}
+                    ⭐ Recommended
+                {% endif %}
+            </button>
+        </a>
+    </div>
+{% endfor %}
+</ul>
+
+<a href="/recommendations/">← Back</a>
+
+{% endblock %}

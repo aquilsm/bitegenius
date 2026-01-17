@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bitegenius-ingress
+  namespace: bitegenius
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - bitegenius.masdev.online
+      secretName: bitegenius-tls
+  rules:
+    - host: bitegenius.masdev.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bitegenius-service
+                port:
+                  number: 80

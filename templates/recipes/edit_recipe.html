@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Edit your recipe</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <p>
+        <label>Recipe name</label><br>
+        <input
+            type="text"
+            name="name"
+            value="{{ recipe.name }}"
+            required
+        >
+    </p>
+
+    <p>
+        <label>Ingredients (comma separated)</label><br>
+        <input
+            type="text"
+            name="ingredients"
+            value="{{ ingredients }}"
+            required
+        >
+    </p>
+
+    <p>
+        <label>Prep time (minutes)</label><br>
+        <input
+            type="number"
+            name="prep_time_minutes"
+            value="{{ recipe.prep_time_minutes }}"
+            required
+        >
+    </p>
+
+    <p>
+        <label>Cooking steps</label><br>
+        <textarea
+            name="steps"
+            rows="6"
+            style="width: 300px;"
+        >{{ recipe.steps }}</textarea>
+    </p>
+
+    <button type="submit">
+        💾 Save changes
+    </button>
+
+    <a href="/recipe/{{ recipe.id }}/">
+        Cancel
+    </a>
+</form>
+
+{% endblock %}

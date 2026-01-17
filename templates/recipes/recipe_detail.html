@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<a href="/recommendations/" style="text-decoration: none;">
+    ← Back to recommendations
+</a>
+
+<hr>
+{% if recipe.id in request.session.favorites %}
+    <a href="/favorite/{{ recipe.id }}/">
+        <button>
+            ⭐ Saved
+        </button>
+    </a>
+{% else %}
+    <a href="/favorite/{{ recipe.id }}/">
+        <button>
+            ☆ Save recipe
+        </button>
+    </a>
+{% endif %}
+
+<h1>{{ recipe.name }}</h1>
+
+<p style="font-size: 14px; color: #555;">
+    ⏱ {{ recipe.prep_time_minutes }} minutes
+</p>
+
+{% if recipe.is_user_submitted %}
+    <a href="/edit-recipe/{{ recipe.id }}/">
+        <button style="margin-left: 10px;">
+            ✏️ Edit
+        </button>
+    </a>
+
+    <a href="/delete-recipe/{{ recipe.id }}/">
+        <button style="
+            margin-left: 6px;
+            background-color: #ffecec;
+            border: 1px solid #e99;
+            color: #900;
+        ">
+            🗑️ Delete
+        </button>
+    </a>
+{% endif %}
+
+<div style="
+    background-color: #f0f7ff;
+    border-left: 4px solid #4a90e2;
+    padding: 12px;
+    margin: 16px 0;
+    border-radius: 6px;
+">
+    <strong>💡 Why this recipe works for you</strong>
+    <p style="margin-top: 6px;">
+        {{ why }}
+    </p>
+</div>
+
+<hr>
+
+<h3>✅ Ingredients you already have</h3>
+
+{% if used_ingredients %}
+    <ul>
+        {% for item in used_ingredients %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p style="color: #777;">
+        This recipe doesn’t directly use your pantry items,
+        but it’s still a good option.
+    </p>
+{% endif %}
+
+<h3>🛒 Ingredients you’re missing</h3>
+
+{% if missing_ingredients %}
+    <ul>
+        {% for item in missing_ingredients %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p style="color: green;">
+        🎉 You have everything you need to cook this!
+    </p>
+{% endif %}
+
+<hr>
+
+<h3>👩‍🍳 How to cook</h3>
+
+{% if steps %}
+    <ol style="line-height: 1.6;">
+        {% for step in steps %}
+            <li>{{ step }}</li>
+        {% endfor %}
+    </ol>
+{% else %}
+    <p style="color: #777;">
+        Cooking steps will be added soon.
+    </p>
+{% endif %}
+
+<hr>
+
+<button style="
+    margin-top: 20px;
+    padding: 10px 16px;
+    font-size: 16px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+">
+    🍳 I’m cooking this
+</button>
+
+{% endblock %}

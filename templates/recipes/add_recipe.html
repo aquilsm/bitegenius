@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Add your recipe</h2>
+
+<p>
+    Share something you like to cook.
+    It doesn’t have to be perfect.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <p>
+        <label>Recipe name</label><br>
+        <input type="text" name="name" required>
+    </p>
+
+    <p>
+        <label>Ingredients (comma separated)</label><br>
+
+        <input
+            type="text"
+            id="ingredient-input"
+            name="ingredients"
+            placeholder="eggs, onion, tomato"
+            autocomplete="off"
+            required
+            style="width: 300px;"
+        >
+
+        <div
+            id="suggestions"
+            style="border: 1px solid #ccc; max-width: 300px;"
+        ></div>
+    </p>
+
+    <p>
+        <label>Prep time (minutes)</label><br>
+        <input type="number" name="prep_time_minutes" required>
+    </p>
+
+    <p>
+    <label>Cooking steps</label><br>
+    <textarea
+        name="steps"
+        rows="6"
+        placeholder="One step per line&#10;Example:&#10;Heat oil in pan&#10;Add onions&#10;Cook until golden"
+        style="width: 300px;"
+    ></textarea>
+    </p>
+
+    <button type="submit">Add recipe</button>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const input = document.getElementById("ingredient-input");
+    const suggestionsBox = document.getElementById("suggestions");
+
+    input.addEventListener("input", async () => {
+        const value = input.value.split(",").pop().trim();
+
+        if (!value) {
+            suggestionsBox.innerHTML = "";
+            return;
+        }
+
+        const response = await fetch(
+            `/api/ingredient-suggestions/?q=${value}`
+        );
+
+        if (!response.ok) {
+            console.error("Ingredient suggestion API failed");
+            return;
+        }
+
+        const data = await response.json();
+        suggestionsBox.innerHTML = "";
+
+        data.forEach(item => {
+            const div = document.createElement("div");
+            div.textContent = item;
+            div.style.cursor = "pointer";
+            div.style.padding = "4px";
+
+            div.onclick = () => {
+                const parts = input.value.split(",");
+                parts.pop();
+                parts.push(" " + item);
+                input.value = parts.join(",").trim() + ", ";
+                suggestionsBox.innerHTML = "";
+            };
+
+            suggestionsBox.appendChild(div);
+        });
+    });
+
+});
+</script>
+
+
+
+{% endblock %}
