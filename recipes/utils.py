@@ -1,4 +1,8 @@
 from .models import Recipe, RecipeIngredient
+from functools import wraps
+from analytics.utils import track_event
+from django.shortcuts import redirect
+from django.urls import reverse
 
 STAPLE_INGREDIENTS = {
     "salt",
@@ -56,3 +60,25 @@ def filter_staples(ingredients):
         i for i in ingredients
         if i not in STAPLE_INGREDIENTS
     ]
+
+def login_gate(event_name):
+    """
+    Decorator to require login and track analytics
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                track_event(
+                    event_name=f"{event_name}_login_required",
+                    request=request,
+                    metadata={
+                        "path": request.path
+                    }
+                )
+                return redirect(
+                    f"{reverse('login')}?next={request.path}"
+                )
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator

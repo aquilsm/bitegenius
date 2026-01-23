@@ -30,13 +30,19 @@ def healthz(request):
 urlpatterns = [
     # path('', home),
     path("healthz/", healthz),
-    path('admin/', admin.site.urls),
+
     path('api/', include('recipes.urls')),
+
     path("", include("recipes.urls")),  # keep your app routes
+    
     # ✅ Auth (CUSTOM)
     path("accounts/", include("users.urls")),
 
     # ✅ Logout only (safe to keep built-in)
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    # ✅ CUSTOM ADMIN EXTENSIONS — MUST COME FIRST
+    path("admin/analytics/", include(("analytics.urls", "analytics"), namespace="analytics")),
     
+    path('admin/', admin.site.urls),
+
 ]

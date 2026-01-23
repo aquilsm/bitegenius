@@ -38,6 +38,8 @@
                         {% endif %}
                         · ⏱ {{ planned_day.recipe.prep_time_minutes }} min
                     </span><br>
+
+                    <!-- Move recipe -->
                     <form
                         method="post"
                         action="{% url 'move-weekly-plan' planned_day.id %}"
@@ -53,9 +55,13 @@
                             {% endfor %}
                         </select>
                     </form>
+
+                    <!-- Cook now -->
                     <a href="{% url 'recipe-detail' planned_day.recipe.id %}">
                         <button>🍳 Cook now</button>
                     </a>
+
+                    <!-- Remove -->
                     <a
                         href="{% url 'remove-from-weekly-plan' planned_day.id %}"
                         style="font-size: 13px; color: #999;"
@@ -66,7 +72,10 @@
             {% else %}
                 <div style="margin-top: 6px; color: #777;">
                     No recipe planned —
-                    <a href="/recommendations/">Add one</a>
+                    <!-- 🔑 FIXED: pass correct day -->
+                    <a href="{% url 'recipe-picker' %}?day={{ day }}">
+                        ➕ Add One
+                    </a>
                 </div>
             {% endif %}
         {% endwith %}

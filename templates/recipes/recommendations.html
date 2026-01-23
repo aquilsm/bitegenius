@@ -1,303 +1,100 @@
 {% extends "base.html" %}
-
 {% block content %}
 
 {% if today_plan %}
-<div style="
-    padding: 14px;
-    border: 1px solid #dbeafe;
-    background: #eff6ff;
-    border-radius: 10px;
-    margin-bottom: 16px;
-">
-    <div style="font-size: 14px; color: #2563eb; font-weight: 600;">
-        📅 Today’s plan
-    </div>
-
-    <div style="margin-top: 6px;">
-        <strong style="font-size: 16px;">
-            {{ today_plan.recipe.name }}
-        </strong>
-        <div style="font-size: 13px; color: #555;">
-            ⏱ {{ today_plan.recipe.prep_time_minutes }} min
-            {% if today_plan.recipe.is_user_submitted %}
-                · 🧑‍🍳 Community
-            {% else %}
-                · ⭐ Official
-            {% endif %}
-        </div>
-
-        <a href="{% url 'recipe-detail' today_plan.recipe.id %}">
-            <button style="
-                margin-top: 8px;
-                padding: 6px 12px;
-                border-radius: 6px;
-                border: none;
-                background: #2563eb;
-                color: white;
-                cursor: pointer;
-            ">
-                🍳 Cook now
-            </button>
-        </a>
-    </div>
+<div style="padding:14px; background:#eff6ff; border-radius:10px; margin-bottom:16px;">
+    <strong>📅 Today’s plan</strong><br>
+    <strong>{{ today_plan.recipe.name }}</strong>
+    · ⏱ {{ today_plan.recipe.prep_time_minutes }} min
+    <br>
+    <a href="{% url 'recipe-detail' today_plan.recipe.id %}">
+        <button>🍳 Cook now</button>
+    </a>
 </div>
 {% endif %}
 
 {% if pantry %}
-    <p>Based on what you have:</p>
-    <div>
-        {% for item in pantry %}
-            <span style="
-                display: inline-block;
-                padding: 4px 8px;
-                margin: 2px;
-                background-color: #eee;
-                border-radius: 12px;
-                font-size: 14px;
-            ">
-                {{ item }}
-            </span>
-        {% endfor %}
-    </div>
+<p>Based on what you have:</p>
+{% for item in pantry %}
+    <span style="padding:4px 8px; background:#eee; border-radius:12px;">
+        {{ item }}
+    </span>
+{% endfor %}
 {% endif %}
 
-<p style="font-size: 13px; color: #666;">
-    💡 Common staples (oil, salt, spices) are not used for matching.
-</p>
-
-<h2>Here are some ideas you can cook right now</h2>
-<p>Pick what sounds best — you don’t need a perfect match.</p>
+<h2>🍽️ Recipe ideas you can cook now</h2>
 
 {% if recommendations %}
 
-    <!-- ===================== -->
-    <!-- OFFICIAL RECIPES -->
-    <!-- ===================== -->
-    <h3 style="margin-top: 20px;">⭐ Official recipes</h3>
+{% for recipe in recommendations %}
+<div style="border:1px solid #ccc; padding:12px; margin-bottom:12px;">
 
-    {% for recipe in recommendations %}
-        {% if not recipe.is_user_submitted %}
+    {% if forloop.first %}
+        <strong style="color:green;">⭐ Best match</strong>
+    {% endif %}
 
-            <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
-
-                {% if forloop.first %}
-                    <div style="color: green; font-weight: bold;">
-                        ⭐ Best match for your pantry
-                    </div>
-                {% endif %}
-
-                <h3>
-                    {{ recipe.name }}
-                    <span style="
-                        font-size: 12px;
-                        color: #0a7;
-                        border: 1px solid #0a7;
-                        padding: 2px 6px;
-                        margin-left: 6px;
-                    ">
-                        Official
-                    </span>
-                </h3>
-                {% if recipe.recipe_id in planned_recipe_ids %}
-                    <div style="
-                        font-size: 12px;
-                        color: #2c7;
-                        margin-bottom: 6px;
-                    ">
-                        📅 Planned this week
-                    </div>
-                {% endif %}
-                {% if recipe.is_favorited %}
-                    <span style="
-                    font-size: 12px;
-                    color: #f5a623;
-                    margin-left: 6px;
-                    ">
-                    ⭐ Saved by you
-                    </span>
-                {% endif %}
-
-
-                <p style="color: #555;">
-                    Uses {{ recipe.used_ingredients|length }} of your ingredients
-                </p>
-
-                <p>
-                    <strong>Uses:</strong>
-                    {{ recipe.used_ingredients|join:", " }}
-                </p>
-
-                {% if recipe.missing_ingredients %}
-                    <p>
-                        You’re missing
-                        {{ recipe.missing_ingredients|length }}
-                        ingredient{{ recipe.missing_ingredients|length|pluralize }}:
-                        <strong>{{ recipe.missing_ingredients|join:", " }}</strong>
-                    </p>
-                {% else %}
-                    <p style="color: green;">
-                        ✅ You have everything you need
-                    </p>
-                {% endif %}
-
-                <p style="
-                    font-size: 14px;
-                    color: #444;
-                    background-color: #f5f5f5;
-                    padding: 6px 10px;
-                    border-radius: 6px;
-                    display: inline-block;
-                ">
-                    💡
-                    {% if recipe.missing_ingredients|length == 0 %}
-                        You have everything you need
-                    {% elif recipe.missing_ingredients|length == 1 %}
-                        Only missing 1 ingredient
-                    {% elif recipe.prep_time_minutes <= 10 %}
-                        Quick to make
-                    {% else %}
-                        Good match for your pantry
-                    {% endif %}
-                </p>
-
-                <p>
-                    ⏱ {{ recipe.prep_time_minutes }} minutes
-                </p>
-
-                <a href="/recipe-clicked/{{ recipe.recipe_id }}/">
-                    <button>I’m cooking this</button>
-                </a>
-                <a href="{% url 'recipe-detail' recipe.recipe_id %}">
-                    <button style="
-                        margin-left: 6px;
-                        background: #fff;
-                        border: 1px solid #ccc;
-                        color: #333;
-                    ">
-                        View recipe →
-                    </button>
-                </a>
-                {% if recipe.recipe_id in planned_recipe_ids %}
-                    <button disabled style="opacity: 0.5;">
-                        Already planned
-                    </button>
-                {% else %}
-                    <a href="{% url 'select-day-for-week' recipe.recipe_id %}">
-                        <button>➕ Add to week</button>
-                    </a>
-                {% endif %}
-            </div>
-
-        {% endif %}
-    {% endfor %}
-
-    <!-- ===================== -->
-    <!-- COMMUNITY RECIPES -->
-    <!-- ===================== -->
-    <h3 style="margin-top: 30px;">🧑‍🍳 Community recipes</h3>
-
-    {% for recipe in recommendations %}
+    <h3>
+        {{ recipe.name }}
         {% if recipe.is_user_submitted %}
-
-            <div style="
-                border: 1px dashed #aaa;
-                padding: 10px;
-                margin-bottom: 10px;
-                background-color: #fafafa;
-            ">
-
-                <h3>
-                    {{ recipe.name }}
-                    <span style="
-                        font-size: 12px;
-                        color: #777;
-                        border: 1px dashed #aaa;
-                        padding: 2px 6px;
-                        margin-left: 6px;
-                    ">
-                        Community
-                    </span>
-                </h3>
-
-                <p style="color: #555;">
-                    Uses {{ recipe.used_ingredients|length }} of your ingredients
-                </p>
-
-                <p>
-                    <strong>Uses:</strong>
-                    {{ recipe.used_ingredients|join:", " }}
-                </p>
-
-                {% if recipe.missing_ingredients %}
-                    <p>
-                        You’re missing
-                        {{ recipe.missing_ingredients|length }}
-                        ingredient{{ recipe.missing_ingredients|length|pluralize }}:
-                        <strong>{{ recipe.missing_ingredients|join:", " }}</strong>
-                    </p>
-                {% else %}
-                    <p style="color: green;">
-                        ✅ You have everything you need
-                    </p>
-                {% endif %}
-
-                <p style="
-                    font-size: 14px;
-                    color: #444;
-                    background-color: #f5f5f5;
-                    padding: 6px 10px;
-                    border-radius: 6px;
-                    display: inline-block;
-                ">
-                    💡
-                    {% if recipe.missing_ingredients|length == 0 %}
-                        You have everything you need
-                    {% elif recipe.missing_ingredients|length == 1 %}
-                        Only missing 1 ingredient
-                    {% elif recipe.prep_time_minutes <= 10 %}
-                        Quick to make
-                    {% else %}
-                        Good match for your pantry
-                    {% endif %}
-                </p>
-
-                <p>
-                    ⏱ {{ recipe.prep_time_minutes }} minutes
-                </p>
-
-                <a href="/recipe-clicked/{{ recipe.recipe_id }}/">
-                    <button>I’m cooking this</button>
-                </a>
-                <a href="{% url 'recipe-detail' recipe.recipe_id %}">
-                    <button style="
-                        margin-left: 6px;
-                        background: #fff;
-                        border: 1px solid #ccc;
-                        color: #333;
-                    ">
-                        View recipe →
-                    </button>
-                </a>
-                <a href="{% url 'select-day-for-week' recipe.recipe_id %}">
-                    <button>➕ Add to week</button>
-                </a>
-            </div>
-
+            <span style="font-size:12px;">🧑‍🍳 Community</span>
+        {% else %}
+            <span style="font-size:12px;">⭐ Official</span>
         {% endif %}
-    {% endfor %}
+    </h3>
 
-{% else %}
+    {% if recipe.recipe_id in planned_recipe_ids %}
+        <div style="color:#2c7;">📅 Planned this week</div>
+    {% endif %}
+
+    {% if recipe.is_favorited %}
+        <div style="color:#f5a623;">⭐ Saved</div>
+    {% endif %}
 
     <p>
-        We couldn’t find a good match yet.
-        Try adding one more ingredient.
+        <strong>Uses:</strong> {{ recipe.used_ingredients|join:", " }}
     </p>
 
-    <a href="/">
-        ← Go back to pantry
+    {% if recipe.missing_ingredients %}
+        <p>
+            Missing {{ recipe.missing_ingredients|join:", " }}
+        </p>
+    {% else %}
+        <p style="color:green;">✅ You have everything</p>
+    {% endif %}
+
+    <p>⏱ {{ recipe.prep_time_minutes }} minutes</p>
+
+    <a href="/recipe-clicked/{{ recipe.recipe_id }}/">
+        <button>I’m cooking this</button>
     </a>
 
+    <a href="{% url 'recipe-detail' recipe.recipe_id %}">
+        <button>View recipe</button>
+    </a>
+
+    {% if recipe.recipe_id in planned_recipe_ids %}
+        <button disabled>Already planned</button>
+    {% else %}
+        <a href="{% url 'select-day-for-week' recipe.recipe_id %}">
+            <button>➕ Add to week</button>
+        </a>
+    {% endif %}
+
+</div>
+{% endfor %}
+
+{% else %}
+<p>No matching recipes yet — try adding one more ingredient.</p>
+<a href="/">← Back to pantry</a>
+{% endif %}
+
+{% if show_login_cta %}
+<div style="margin-top:20px; padding:16px; background:#f8f8f8; border-radius:8px;">
+    🔐 <strong>Login to see {{ hidden_count }} more recipes</strong><br>
+    <a href="{% url 'login' %}?next={{ request.path }}">
+        👉 Unlock full recommendations
+    </a>
+</div>
 {% endif %}
 
 {% endblock %}

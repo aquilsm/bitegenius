@@ -1,0 +1,17 @@
+{% extends "admin/app_index.html" %}
+{% load i18n %}
+
+{% block sidebar %}
+{{ block.super }}
+
+<div class="module">
+  <h3>📊 Analytics</h3>
+  <ul>
+    <li>
+      <a href="/admin/analytics/analyticsevent/dashboard/">
+        Analytics Dashboard
+      </a>
+    </li>
+  </ul>
+</div>
+{% endblock %}

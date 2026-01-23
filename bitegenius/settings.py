@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'users',
     'recipes',
     'rest_framework',
+    "analytics",
 ]
 
 MIDDLEWARE = [
@@ -153,6 +154,8 @@ STATIC_URL = 'static/'
 LOGIN_REDIRECT_URL = "/recommendations/"
 LOGOUT_REDIRECT_URL = "/"
 
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@bitegenius.ai"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

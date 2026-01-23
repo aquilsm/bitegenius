@@ -8,7 +8,8 @@ from . import views
 
 urlpatterns = [
     # HTML pages
-    path("", pantry_page, name="pantry-page"),
+    path("", home_page, name="home"),
+    path("pantry/", pantry_page, name="pantry-page"),
     path("recommendations/", recommendations_page, name="recommendations-page"),
     path("recipe-clicked/<int:recipe_id>/",views.recipe_clicked,name="recipe-clicked"),
     path("add-recipe/",add_recipe,name="add-recipe"),
@@ -22,6 +23,8 @@ urlpatterns = [
     path("weekly-plan/remove/<int:planned_id>/",views.remove_from_weekly_plan,name="remove-from-weekly-plan"),
     path("weekly-plan/select-day/<int:recipe_id>/",views.select_day_for_week,name="select-day-for-week"),
     path("weekly-plan/move/<int:planned_id>/",views.move_weekly_plan,name="move-weekly-plan"),
+    path("weekly-plan/pick/",views.recipe_picker,name="recipe-picker"),
+    
 
     # API endpoints
     path("api/pantry/", PantryView.as_view(), name="pantry"),

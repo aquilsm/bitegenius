@@ -1,0 +1,158 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>📊 BiteGenius Analytics</h1>
+
+<form method="get" style="margin-bottom: 20px;">
+  <label>
+    <strong>From:</strong>
+    <input type="date" name="from" value="{{ from_date }}">
+  </label>
+
+  <label style="margin-left: 10px;">
+    <strong>To:</strong>
+    <input type="date" name="to" value="{{ to_date }}">
+  </label>
+
+  <button type="submit" class="button">Apply</button>
+</form>
+
+<hr>
+
+<ul>
+  <li><strong>Total Events:</strong> {{ total_events }}</li>
+  <li><strong>Authenticated Events:</strong> {{ authenticated_events }}</li>
+  <li><strong>Anonymous Events:</strong> {{ anonymous_events }}</li>
+</ul>
+
+<hr>
+
+<h2>📈 Events per Day</h2>
+<canvas id="eventsChart" height="120"></canvas>
+
+{{ day_labels|json_script:"day-labels" }}
+{{ day_counts|json_script:"day-counts" }}
+
+<hr>
+
+<h2>🔥 Top Events</h2>
+<table class="listing">
+  <thead>
+    <tr>
+      <th>Event</th>
+      <th>Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in top_events %}
+    <tr>
+      <td>{{ e.event_type }}</td>
+      <td>{{ e.count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<h2>🧪 Funnel</h2>
+<table class="listing">
+  <thead>
+    <tr>
+      <th>Step</th>
+      <th>Sessions</th>
+      <th>Conversion %</th>
+      <th>Drop-off %</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in funnel_counts %}
+    <tr>
+      <td>{{ row.label }}</td>
+      <td>{{ row.count }}</td>
+      <td>{{ row.conversion }}%</td>
+      <td>
+        {% if row.next_step %}
+          <a href="{% url 'analytics:funnel_drilldown' %}?step={{ row.step }}&next={{ row.next_step }}">
+            🔍 {{ row.dropoff }}%
+          </a>
+        {% else %}
+          {{ row.dropoff }}%
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<h3>📉 Funnel Conversion</h3>
+<canvas id="funnelChart" height="160"></canvas>
+
+<h3 style="margin-top: 30px;">🚨 Funnel Drop-off</h3>
+<canvas id="dropoffChart" height="160"></canvas>
+
+{{ funnel_counts|json_script:"funnel-data" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const dayLabels = JSON.parse(
+    document.getElementById("day-labels").textContent
+  );
+  const dayCounts = JSON.parse(
+    document.getElementById("day-counts").textContent
+  );
+
+  new Chart(document.getElementById("eventsChart"), {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [{
+        data: dayCounts,
+        borderWidth: 2
+      }]
+    }
+  });
+
+  const funnelData = JSON.parse(
+    document.getElementById("funnel-data").textContent
+  );
+
+  const labels = funnelData.map(r => r.label);
+  const counts = funnelData.map(r => r.count);
+  const dropoffs = funnelData.map(r => r.dropoff);
+
+  new Chart(document.getElementById("funnelChart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ data: counts }]
+    },
+    options: { indexAxis: "y" }
+  });
+
+  new Chart(document.getElementById("dropoffChart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ data: dropoffs }]
+    },
+    options: {
+      indexAxis: "y",
+      scales: {
+        x: { beginAtZero: true, max: 100 }
+      }
+    }
+  });
+
+});
+</script>
+
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}

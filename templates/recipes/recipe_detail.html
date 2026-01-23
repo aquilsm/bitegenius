@@ -7,19 +7,17 @@
 </a>
 
 <hr>
-{% if recipe.id in request.session.favorites %}
-    <a href="/favorite/{{ recipe.id }}/">
-        <button>
+
+<!-- ⭐ Favorite toggle -->
+<a href="{% url 'toggle-favorite' recipe.id %}" style="text-decoration: none;">
+    <button>
+        {% if recipe.id in favorite_ids %}
             ⭐ Saved
-        </button>
-    </a>
-{% else %}
-    <a href="/favorite/{{ recipe.id }}/">
-        <button>
+        {% else %}
             ☆ Save recipe
-        </button>
-    </a>
-{% endif %}
+        {% endif %}
+    </button>
+</a>
 
 <h1>{{ recipe.name }}</h1>
 

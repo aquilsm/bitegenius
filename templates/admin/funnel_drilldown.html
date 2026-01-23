@@ -1,0 +1,61 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>🔍 Funnel Drop-off Drilldown</h1>
+
+<p>
+  <strong>From:</strong> {{ step }} →
+  <strong>To:</strong> {{ next_step }}
+</p>
+
+<p>
+  <strong>Dropped sessions:</strong> {{ count }}
+</p>
+
+<table class="adminlist">
+  <thead>
+    <tr>
+      <th>Session</th>
+      <th>User</th>
+      <th>Event</th>
+      <th>Time</th>
+      <th>Metadata</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in events %}
+    <tr>
+      <td>
+        {% if e.session_id %}
+          <a href="{% url 'analytics:session-timeline' e.session_id %}">
+            {{ e.session_id }}
+          </a>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td>
+        {% if e.user %}
+          {{ e.user.username }}
+        {% else %}
+          Anonymous
+        {% endif %}
+      </td>
+      <td>{{ e.event_type }}</td>
+      <td>{{ e.created_at }}</td>
+      <td>
+        {% if e.metadata %}
+          <pre>{{ e.metadata }}</pre>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<br>
+<a href="javascript:history.back()">← Back to dashboard</a>
+
+{% endblock %}

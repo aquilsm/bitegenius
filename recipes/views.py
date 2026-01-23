@@ -18,6 +18,43 @@ from django.http import HttpResponseRedirect
 from datetime import date, timedelta
 from collections import Counter
 from datetime import date
+from analytics.utils import track_event
+from .pantry_utils import normalize_ingredient,fuzzy_match_ingredient
+from users.decorators import login_required_or_redirect
+from rest_framework.test import APIRequestFactory
+import random
+from django.contrib import messages
+from django.urls import reverse
+from datetime import date
+from recipes.utils import login_gate
+
+def home_page(request):
+    """
+    Public landing page.
+    No login required.
+    Shows pantry form + recipe of the day + browse recipes.
+    """
+
+    recipes = Recipe.objects.prefetch_related("ingredients").all()
+
+    recipe_of_the_day = random.choice(recipes) if recipes else None
+
+    categories = {
+        "Quick & Easy": recipes.filter(prep_time_minutes__lte=15),
+        "Dinner Ideas": recipes.filter(prep_time_minutes__gt=15),
+    }
+
+    return render(
+        request,
+        "recipes/home.html",
+        {
+            "recipe_of_the_day": recipe_of_the_day,
+            "categories": categories,
+            "ingredients": "",     # 🟢 needed for form re-render
+            "error": None,         # 🟢 needed for form errors
+            "user": request.user,
+        }
+    )
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
@@ -29,10 +66,10 @@ class RecipeViewSet(ModelViewSet):
 
 class PantryView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = PantryInputSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         session_id = request.session.session_key
         if not session_id:
@@ -43,16 +80,53 @@ class PantryView(APIView):
 
         ingredient_names = serializer.validated_data["ingredients"]
 
+        known_ingredients = list(
+            Ingredient.objects.values_list("name", flat=True)
+        )
+
+        matched_ingredients = []
+        fuzzy_used_count = 0
+
         for name in ingredient_names:
-            normalized = name.strip().lower()
-            ingredient, _ = Ingredient.objects.get_or_create(name=normalized)
-            PantryItem.objects.create(
+            normalized = normalize_ingredient(name)
+            matched = fuzzy_match_ingredient(
+                normalized,
+                known_ingredients
+            )
+
+            ingredient, _ = Ingredient.objects.get_or_create(name=matched)
+
+            if normalized != matched:
+                fuzzy_used_count += 1
+
+            PantryItem.objects.get_or_create(
                 session_id=session_id,
                 ingredient=ingredient
             )
 
+            matched_ingredients.append(matched)
+
+        # ✅ Analytics
+        track_event(
+            event_name="pantry_submitted",
+            request=request,
+            metadata={
+                "ingredient_count": len(matched_ingredients),
+            }
+        )
+
+        track_event(
+            event_name="pantry_fuzzy_matching",
+            request=request,
+            metadata={
+                "fuzzy_matches": fuzzy_used_count,
+                "total_ingredients": len(ingredient_names)
+            }
+        )
+
+        # ✅ RETURN matched ingredients
         return Response(
-            {"message": "Pantry updated"},
+            {"matched_ingredients": matched_ingredients},
             status=status.HTTP_201_CREATED
         )
 
@@ -130,11 +204,6 @@ class RecommendationView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 def pantry_page(request):
-    """
-    Renders the pantry input page.
-    Handles form submission and stores ingredients in session.
-    """
-
     if request.method == "POST":
         ingredients = request.POST.get("ingredients", "")
 
@@ -144,15 +213,7 @@ def pantry_page(request):
             if i.strip()
         ]
 
-        print(
-            f"USER_EVENT pantry_submitted count={len(ingredient_list)}"
-        )
-
-        if ingredient_list:
-            request.session["pantry"] = ingredient_list
-            return redirect("/recommendations/")
-        else:
-            # POST but empty input
+        if not ingredient_list:
             return render(
                 request,
                 "recipes/pantry.html",
@@ -160,31 +221,46 @@ def pantry_page(request):
                     "error": "Please enter at least one ingredient.",
                     "ingredients": ingredients,
                 }
+            )
+
+        factory = APIRequestFactory()
+        api_request = factory.post(
+            "/api/pantry/",
+            {"ingredients": ingredient_list},
+            format="json"
         )
 
-    # GET request — just show the page
+        api_request.session = request.session
+        api_request.user = request.user
+
+        response = PantryView.as_view()(api_request)
+
+        # ✅ CRITICAL FIX
+        matched = response.data.get("matched_ingredients", [])
+        request.session["pantry"] = matched
+        request.session.modified = True
+
+        return redirect("/recommendations/")
+
     return render(request, "recipes/pantry.html")
 
 def recommendations_page(request):
+    MAX_ANON_RECOMMENDATIONS = 3
+
     pantry = request.session.get("pantry", [])
     favorites = request.session.get("favorites", [])
 
     recommendations = []
 
-    recipes = Recipe.objects.prefetch_related("ingredients").all()
+    recipes = Recipe.objects.prefetch_related("ingredients")
 
     for recipe in recipes:
-
-        # ---------------------------
-        # Recipe ingredients (exclude staples)
-        # ---------------------------
         recipe_ingredients = [
             ing.name
             for ing in recipe.ingredients.all()
             if ing.name not in STAPLE_INGREDIENTS
         ]
 
-        # 🔑 FIX 1: skip recipes with no meaningful ingredients
         if not recipe_ingredients:
             continue
 
@@ -192,7 +268,6 @@ def recommendations_page(request):
             ing for ing in recipe_ingredients if ing in pantry
         ]
 
-        # 🔑 FIX 2: skip recipes that use NOTHING from pantry
         if not used_ingredients:
             continue
 
@@ -200,20 +275,10 @@ def recommendations_page(request):
             ing for ing in recipe_ingredients if ing not in pantry
         ]
 
-        # ---------------------------
-        # BASE SCORE
-        # ---------------------------
         score = len(used_ingredients)
 
-        # ---------------------------
-        # ⭐ FAVORITES BOOST
-        # ---------------------------
         if recipe.id in favorites:
             score += 2
-            print(
-                f"USER_EVENT recommendation_boosted "
-                f"recipe_id={recipe.id}"
-            )
 
         recommendations.append({
             "recipe_id": recipe.id,
@@ -226,44 +291,65 @@ def recommendations_page(request):
             "score": score,
         })
 
-    # ---------------------------
-    # SORT
-    # ---------------------------
     recommendations.sort(
         key=lambda x: (-x["score"], len(x["missing_ingredients"]))
     )
 
-    print(
-        f"USER_EVENT recommendations_viewed "
-        f"count={len(recommendations)}"
+    total_recommendations = len(recommendations)
+    is_anonymous = not request.user.is_authenticated
+
+    # 🔐 SOFT GATE
+    if is_anonymous:
+        recommendations = recommendations[:MAX_ANON_RECOMMENDATIONS]
+
+        if total_recommendations > MAX_ANON_RECOMMENDATIONS:
+            track_event(
+                event_name="recommendation_login_gate_shown",
+                request=request,
+                metadata={
+                    "total_available": total_recommendations,
+                    "shown": MAX_ANON_RECOMMENDATIONS,
+                }
+            )
+
+    # 📊 Analytics — page viewed
+    track_event(
+        event_name="recommendations_viewed",
+        request=request,
+        user=request.user,
+        metadata={
+            "shown": len(recommendations),
+            "total_available": total_recommendations,
+        }
     )
 
+    # ----------------------------
+    # Weekly plan helpers
+    # ----------------------------
     planned_recipe_ids = set(
-    PlannedRecipe.objects.filter(
-        weekly_plan__session_id=request.session.session_key,
-        weekly_plan__week_start=get_week_start(),
-    ).values_list("recipe_id", flat=True)
+        PlannedRecipe.objects.filter(
+            weekly_plan__session_id=request.session.session_key,
+            weekly_plan__week_start=get_week_start(),
+        ).values_list("recipe_id", flat=True)
     )
 
-    # ----------------------------
-    # Today’s cooking reminder
-    # ----------------------------
-    today_index = date.today().weekday()
     today_plan = None
+    today_index = date.today().weekday()
 
     if request.session.session_key:
         week_start = get_week_start()
+        session_id = request.session.session_key
 
         weekly_plan = WeeklyPlan.objects.filter(
-            session_id=request.session.session_key,
-            week_start=week_start
+            user=request.user if request.user.is_authenticated else None,
+            session_id=None if request.user.is_authenticated else session_id,
+            week_start=week_start,
         ).first()
 
         if weekly_plan:
             today_plan = weekly_plan.planned_recipes.select_related(
                 "recipe"
             ).filter(day_of_week=today_index).first()
-
 
     return render(
         request,
@@ -272,10 +358,17 @@ def recommendations_page(request):
             "recommendations": recommendations,
             "pantry": pantry,
             "planned_recipe_ids": planned_recipe_ids,
-            "today_plan": today_plan,   # 👈 NEW
+            "today_plan": today_plan,
+            "show_login_cta": (
+                is_anonymous and
+                total_recommendations > MAX_ANON_RECOMMENDATIONS
+            ),
+            "hidden_count": max(
+                0,
+                total_recommendations - MAX_ANON_RECOMMENDATIONS
+            ),
         }
     )
-
 
 def recipe_clicked(request, recipe_id):
     favorites = request.session.get("favorites", [])
@@ -284,12 +377,16 @@ def recipe_clicked(request, recipe_id):
         favorites.append(recipe_id)
         request.session["favorites"] = favorites
 
-    print(
-        f"USER_EVENT recipe_clicked "
-        f"id={recipe_id}"
+    # ✅ Analytics — recipe clicked
+    track_event(
+        event_name="recipe_clicked",
+        request=request,
+        user=request.user,
+        metadata={"recipe_id": recipe_id}
     )
 
     return redirect("/recommendations/")
+
 
 def ingredient_suggestions(request):
     query = request.GET.get("q", "").strip().lower()
@@ -499,33 +596,46 @@ def delete_recipe(request, recipe_id):
         }
     )
 
+@login_gate("toggle_favorite")
 def toggle_favorite(request, recipe_id):
-    favorites = request.session.get("favorites", [])
+    recipe = get_object_or_404(Recipe, id=recipe_id)
 
-    if recipe_id in favorites:
-        favorites.remove(recipe_id)
+    favorite, created = FavoriteRecipe.objects.get_or_create(
+        user=request.user,
+        recipe=recipe
+    )
+
+    if not created:
+        favorite.delete()
         action = "removed"
     else:
-        favorites.append(recipe_id)
         action = "added"
 
-    request.session["favorites"] = favorites
-
-    print(
-        f"USER_EVENT favorite_{action} recipe_id={recipe_id}"
+    # 📊 Analytics — success
+    track_event(
+        event_name="recipe_favorite_toggled",
+        request=request,
+        user=request.user,
+        metadata={
+            "recipe_id": recipe.id,
+            "action": action
+        }
     )
 
-    return HttpResponseRedirect(
-        request.META.get("HTTP_REFERER", "/")
-    )
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
+@login_required_or_redirect
 def favorites_page(request):
     favorite_ids = request.session.get("favorites", [])
 
     recipes = Recipe.objects.filter(id__in=favorite_ids)
 
-    print(
-        f"USER_EVENT favorites_viewed count={len(recipes)}"
+    # ✅ Analytics — favorites viewed
+    track_event(
+        event_name="favorites_viewed",
+        request=request,
+        user=request.user,
+        metadata={"count": recipes.count()}
     )
 
     return render(
@@ -536,11 +646,12 @@ def favorites_page(request):
         }
     )
 
+
 def get_week_start():
     today = date.today()
     return today - timedelta(days=today.weekday())
 
-
+@login_required_or_redirect
 def weekly_plan_page(request):
     # ----------------------------
     # Session
@@ -621,6 +732,19 @@ def weekly_plan_page(request):
 
     today_index = date.today().weekday()
 
+    track_event(
+    event_name="weekly_plan_viewed",
+    request=request,
+    user=request.user
+    )
+    
+    track_event(
+    event_name="weekly_plan_created",
+    request=request,
+    user=request.user,
+    metadata={"week_start": str(week_start)}
+    )
+
     return render(
         request,
         "recipes/weekly_plan.html",
@@ -633,37 +757,46 @@ def weekly_plan_page(request):
         }
     )
 
+@login_gate("add_to_weekly_plan")
 def add_to_weekly_plan(request, recipe_id, day):
-    session_id = request.session.session_key
+    recipe = get_object_or_404(Recipe, id=recipe_id)
     week_start = get_week_start()
 
     if request.user.is_authenticated:
-        weekly_plan, _ = WeeklyPlan.objects.get_or_create(
+        # ✅ Logged-in user: user-based plan, NO session_id
+        weekly_plan, created = WeeklyPlan.objects.get_or_create(
             user=request.user,
-            week_start=week_start
+            session_id=None,
+            week_start=week_start,
         )
     else:
-        session_id = request.session.session_key
-        if not session_id:
+        # 🔐 Anonymous user: session-based plan
+        if not request.session.session_key:
             request.session.create()
-            session_id = request.session.session_key
 
-        weekly_plan, _ = WeeklyPlan.objects.get_or_create(
-            session_id=session_id,
-            week_start=week_start
+        weekly_plan, created = WeeklyPlan.objects.get_or_create(
+            user=None,
+            session_id=request.session.session_key,
+            week_start=week_start,
         )
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-
-    PlannedRecipe.objects.update_or_create(
+    planned_recipe, replaced = PlannedRecipe.objects.update_or_create(
         weekly_plan=weekly_plan,
         day_of_week=day,
-        defaults={"recipe": recipe},
+        defaults={"recipe": recipe}
     )
 
-    print(
-        f"USER_EVENT weekly_plan_added "
-        f"recipe_id={recipe.id} day={day}"
+    # 📊 Analytics
+    track_event(
+        event_name="recipe_added_to_weekly_plan",
+        request=request,
+        user=request.user if request.user.is_authenticated else None,
+        metadata={
+            "recipe_id": recipe.id,
+            "day": day,
+            "week_start": str(week_start),
+            "replaced_existing": not replaced
+        }
     )
 
     return redirect("weekly-plan")
@@ -672,12 +805,16 @@ def remove_from_weekly_plan(request, planned_id):
     planned = get_object_or_404(PlannedRecipe, id=planned_id)
     planned.delete()
 
-    print(
-        f"USER_EVENT weekly_plan_removed "
-        f"planned_id={planned_id}"
+    # ✅ Analytics — recipe removed from weekly plan
+    track_event(
+        event_name="recipe_removed_from_plan",
+        request=request,
+        user=request.user,
+        metadata={"planned_id": planned_id}
     )
 
     return redirect("weekly-plan")
+
 
 def select_day_for_week(request, recipe_id):
     session_id = request.session.session_key
@@ -762,4 +899,59 @@ def move_weekly_plan(request, planned_id):
         )
 
     return redirect("weekly-plan")
+
+def recipe_picker(request):
+    """
+    Shows ALL recipes.
+    Used by Weekly Planner → Add One
+    """
+
+    day = request.GET.get("day")
+
+    recipes = (
+        Recipe.objects
+        .prefetch_related("ingredients")
+        .all()
+        .order_by("name")
+    )
+
+    # Favorite mapping (only if logged in)
+    favorite_ids = set()
+
+    if request.user.is_authenticated:
+        favorite_ids = set(
+            FavoriteRecipe.objects.filter(
+                user=request.user
+            ).values_list("recipe_id", flat=True)
+        )
+
+    recipe_data = []
+    for recipe in recipes:
+        recipe_data.append({
+            "id": recipe.id,
+            "name": recipe.name,
+            "prep_time": recipe.prep_time_minutes,
+            "is_favorited": recipe.id in favorite_ids
+        })
+
+    # 📊 Analytics
+    track_event(
+        event_name="recipe_picker_viewed",
+        request=request,
+        user=request.user,
+        metadata={
+            "day": day,
+            "recipe_count": len(recipe_data)
+        }
+    )
+
+    return render(
+        request,
+        "recipes/recipe_picker.html",
+        {
+            "recipes": recipe_data,
+            "day": day,
+            "login_required": not request.user.is_authenticated
+        }
+    )
 

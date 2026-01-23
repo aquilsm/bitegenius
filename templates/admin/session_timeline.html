@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<h1>🧭 Session Timeline</h1>
+
+<p>
+  <strong>Session:</strong> {{ session_id }}
+</p>
+
+<table class="adminlist">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Time</th>
+      <th>Event</th>
+      <th>User</th>
+      <th>Metadata</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in events %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ e.created_at }}</td>
+      <td>{{ e.event_type }}</td>
+      <td>
+        {% if e.user %}
+          {{ e.user.username }}
+        {% else %}
+          Anonymous
+        {% endif %}
+      </td>
+      <td>
+        {% if e.metadata %}
+          <pre>{{ e.metadata }}</pre>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="javascript:history.back()">← Back</a>
+
+{% endblock %}

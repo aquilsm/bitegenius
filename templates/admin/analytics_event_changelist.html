@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools %}
+  {{ block.super }}
+
+  {% if request.user.is_superuser %}
+    <li>
+      <a href="{% url 'analytics:analytics-dashboard' %}" class="addlink">
+        📊 Analytics Dashboard
+      </a>
+    </li>
+  {% endif %}
+{% endblock %}

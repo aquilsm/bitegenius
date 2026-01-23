@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>👤 My Account</h2>
+<div style="
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    max-width: 420px;
+">
+<p style="color:#666;">
+    Manage your BiteGenius account
+</p>
+
+<hr>
+
+<h3>📛 Profile</h3>
+<ul>
+    <li><strong>Username:</strong> {{ user.username }}</li>
+
+    {% if user.email %}
+        <p><strong>Email:</strong> {{ user.email }}</p>
+    {% else %}
+        <p style="color: #999;">No email added</p>
+    {% endif %}
+</ul>
+<hr>
+
+<h3>⭐ Favorites</h3>
+<p>
+    You’ve saved <strong>{{ favorites_count }}</strong> recipe{{ favorites_count|pluralize }}.
+</p>
+<a href="{% url 'favorites-page' %}">View favorites →</a>
+
+<hr>
+
+<h3>📅 Weekly planner</h3>
+<p>
+    {{ planned_count }} meal{{ planned_count|pluralize }} planned this week.
+</p>
+<a href="{% url 'weekly-plan' %}">View weekly plan →</a>
+
+<hr>
+
+<h3>🍳 Today’s cooking</h3>
+
+{% if today_recipe %}
+    <p>
+        You planned to cook:
+        <strong>{{ today_recipe.name }}</strong>
+        (⏱ {{ today_recipe.prep_time_minutes }} min)
+    </p>
+    <a href="{% url 'recipe-detail' today_recipe.id %}">
+        Cook now →
+    </a>
+{% else %}
+    <p style="color: #777;">
+        Nothing planned for today.
+    </p>
+    <a href="{% url 'recommendations-page' %}">
+        Get ideas →
+    </a>
+{% endif %}
+
+<hr>
+
+<a href="{% url 'password_change' %}">
+    🔐 Change password
+</a>
+
+
+<hr>
+
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">
+        🚪 Logout
+    </button>
+</form>
+
+{% endblock %}

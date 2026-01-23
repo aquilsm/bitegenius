@@ -1,27 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>BiteGenius</title>
-    <meta charset="utf-8">
-</head>
-<body>
+<header style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+">
+    <h1>
+        <a href="{% url 'home' %}"
+        style="text-decoration:none; color:inherit;">
+        🍽 BiteGenius
+        </a>
+    </h1>
 
-    <h1>BiteGenius</h1>
-    
-    {% if user.is_authenticated %}
-        👋 Hi {{ user.username }} |
+    <div>
+        {% if request.user.is_authenticated %}
+            <span style="margin-right: 10px;">
+                👋 Hi,
+                <a href="{% url 'account' %}">
+                    <strong>{{ request.user.username }}</strong>
+                </a>
+            </span>
+            <a href="{% url 'account' %}">My Account</a>
         <form method="post" action="{% url 'logout' %}" style="display:inline;">
             {% csrf_token %}
-            <button type="submit" style="background:none;border:none;cursor:pointer;">
-            Logout
+            <button type="submit" style="background:none; border:none; color:#555; cursor:pointer;">
+                Logout
             </button>
         </form>
-    {% else %}
-        <a href="{% url 'login' %}">Login</a>
-    {% endif %}
 
+        {% else %}
+            <a href="{% url 'login' %}"
+               style="margin-right: 10px;">
+                Login
+            </a>
+            <a href="{% url 'signup' %}">
+                Sign up
+            </a>
+        {% endif %}
+    </div>
+</header>
 
-    <hr>
+<hr>
+
 
     <a href="/add-recipe/">➕ Add a recipe</a>
     <a href="/favorites/">
@@ -35,3 +54,5 @@
 
 </body>
 </html>
+
+

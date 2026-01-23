@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>🍽 Choose a Recipe</h2>
+
+{% if login_required %}
+  <p style="color:#888;">
+    ⭐ Login required to favorite or add to weekly plan
+  </p>
+{% endif %}
+
+<ul style="list-style:none; padding:0;">
+  {% for recipe in recipes %}
+    <li style="margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px;">
+
+      <strong>{{ recipe.name }}</strong>
+      <span style="color:#777;">({{ recipe.prep_time }} min)</span>
+
+      <!-- ⭐ Favorite -->
+      <span style="margin-left:10px;">
+        <a href="{% url 'toggle-favorite' recipe.id %}">
+          {% if recipe.is_favorited %}
+            ⭐
+          {% else %}
+            ☆
+          {% endif %}
+        </a>
+      </span>
+
+      <!-- ➕ Add -->
+      {% if day %}
+        <a
+          href="{% url 'add-to-weekly-plan' recipe.id day %}"
+          style="margin-left:15px;"
+        >
+          ➕ Add
+        </a>
+      {% endif %}
+
+    </li>
+  {% endfor %}
+</ul>
+
+<a href="{% url 'weekly-plan' %}">← Back to Weekly Plan</a>
+
+{% endblock %}
