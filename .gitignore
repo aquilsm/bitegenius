@@ -1,3 +1,21 @@
-.env
-venv/
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+
+# Django
+*.log
+media/
+staticfiles/
+
+# Virtualenv
+venv/
+.env
+
+# OS
+.DS_Store
+
+# Docker
+*.pid

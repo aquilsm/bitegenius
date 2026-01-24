@@ -1,100 +1,967 @@
 {% extends "base.html" %}
 {% block content %}
 
-{% if today_plan %}
-<div style="padding:14px; background:#eff6ff; border-radius:10px; margin-bottom:16px;">
-    <strong>📅 Today’s plan</strong><br>
-    <strong>{{ today_plan.recipe.name }}</strong>
-    · ⏱ {{ today_plan.recipe.prep_time_minutes }} min
-    <br>
-    <a href="{% url 'recipe-detail' today_plan.recipe.id %}">
-        <button>🍳 Cook now</button>
-    </a>
-</div>
-{% endif %}
-
-{% if pantry %}
-<p>Based on what you have:</p>
-{% for item in pantry %}
-    <span style="padding:4px 8px; background:#eee; border-radius:12px;">
-        {{ item }}
-    </span>
-{% endfor %}
-{% endif %}
-
-<h2>🍽️ Recipe ideas you can cook now</h2>
-
-{% if recommendations %}
-
-{% for recipe in recommendations %}
-<div style="border:1px solid #ccc; padding:12px; margin-bottom:12px;">
-
-    {% if forloop.first %}
-        <strong style="color:green;">⭐ Best match</strong>
-    {% endif %}
-
-    <h3>
-        {{ recipe.name }}
-        {% if recipe.is_user_submitted %}
-            <span style="font-size:12px;">🧑‍🍳 Community</span>
-        {% else %}
-            <span style="font-size:12px;">⭐ Official</span>
-        {% endif %}
-    </h3>
-
-    {% if recipe.recipe_id in planned_recipe_ids %}
-        <div style="color:#2c7;">📅 Planned this week</div>
-    {% endif %}
-
-    {% if recipe.is_favorited %}
-        <div style="color:#f5a623;">⭐ Saved</div>
-    {% endif %}
-
-    <p>
-        <strong>Uses:</strong> {{ recipe.used_ingredients|join:", " }}
-    </p>
-
-    {% if recipe.missing_ingredients %}
-        <p>
-            Missing {{ recipe.missing_ingredients|join:", " }}
+<!-- ================= HEADER ================= -->
+<div class="recommendations-header">
+    <div class="header-content">
+        <div class="header-badge">
+            <span class="badge-icon">🍳</span>
+            Smart Recommendations
+        </div>
+        <h1 class="main-title">
+            Recipe ideas you can cook
+            <span class="gradient-text">right now</span>
+        </h1>
+        
+        {% if pantry %}
+        <p class="header-subtitle">
+            Based on what's in your kitchen today
         </p>
-    {% else %}
-        <p style="color:green;">✅ You have everything</p>
+        <div class="pantry-tags">
+            {% for item in pantry %}
+            <span class="pantry-tag">
+                <span class="tag-icon">🥬</span>
+                {{ item }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if today_plan %}
+    <div class="todays-plan-card">
+        <div class="plan-badge">
+            <span class="plan-icon">📅</span>
+            Today's Plan
+        </div>
+        <div class="plan-content">
+            <div class="plan-left">
+                <h3 class="plan-title">{{ today_plan.recipe.name }}</h3>
+                <div class="plan-meta">
+                    <span class="meta-item">
+                        <span class="meta-icon">⏱️</span>
+                        {{ today_plan.recipe.prep_time_minutes }} min
+                    </span>
+                    <span class="meta-item">
+                        <span class="meta-icon">🍽️</span>
+                        Ready to cook
+                    </span>
+                </div>
+            </div>
+            <div class="plan-right">
+                <a href="{% url 'recipe-detail' today_plan.recipe.id %}" class="cook-btn">
+                    <span class="btn-text">Cook now</span>
+                    <span class="btn-icon">🔥</span>
+                </a>
+            </div>
+        </div>
+    </div>
     {% endif %}
+</div>
 
-    <p>⏱ {{ recipe.prep_time_minutes }} minutes</p>
-
-    <a href="/recipe-clicked/{{ recipe.recipe_id }}/">
-        <button>I’m cooking this</button>
-    </a>
-
-    <a href="{% url 'recipe-detail' recipe.recipe_id %}">
-        <button>View recipe</button>
-    </a>
-
-    {% if recipe.recipe_id in planned_recipe_ids %}
-        <button disabled>Already planned</button>
+<!-- ================= RECOMMENDATIONS ================= -->
+<section class="recommendations-section">
+    {% if recommendations %}
+    <div class="recommendations-grid">
+        {% for recipe in recommendations %}
+        <div class="recipe-card {% if forloop.first %}best-match{% endif %}">
+            {% if forloop.first %}
+            <div class="best-match-badge">
+                <span class="star-icon">⭐</span>
+                Best Match
+            </div>
+            {% endif %}
+            
+            <div class="recipe-header">
+                <div class="recipe-type">
+                    {% if recipe.is_user_submitted %}
+                    <span class="type-badge community">
+                        <span class="type-icon">👥</span>
+                        Community Recipe
+                    </span>
+                    {% else %}
+                    <span class="type-badge official">
+                        <span class="type-icon">⭐</span>
+                        Official Recipe
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="recipe-status">
+                    {% if recipe.recipe_id in planned_recipe_ids %}
+                    <span class="status-badge planned">
+                        <span class="status-icon">📅</span>
+                        Planned this week
+                    </span>
+                    {% endif %}
+                    
+                    {% if recipe.is_favorited %}
+                    <span class="status-badge favorited">
+                        <span class="status-icon">❤️</span>
+                        Saved
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <h3 class="recipe-title">{{ recipe.name }}</h3>
+            
+            <div class="ingredients-section">
+                <div class="ingredients-used">
+                    <span class="section-title">Uses:</span>
+                    <div class="used-tags">
+                        {% for ingredient in recipe.used_ingredients|slice:":3" %}
+                        <span class="used-tag">
+                            <span class="ingredient-icon">✅</span>
+                            {{ ingredient }}
+                        </span>
+                        {% endfor %}
+                        {% if recipe.used_ingredients|length > 3 %}
+                        <span class="used-tag more">+{{ recipe.used_ingredients|length|add:"-3" }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if recipe.missing_ingredients %}
+                <div class="ingredients-missing">
+                    <span class="section-title">Missing:</span>
+                    <div class="missing-tags">
+                        {% for ingredient in recipe.missing_ingredients|slice:":2" %}
+                        <span class="missing-tag">
+                            <span class="ingredient-icon">⚠️</span>
+                            {{ ingredient }}
+                        </span>
+                        {% endfor %}
+                        {% if recipe.missing_ingredients|length > 2 %}
+                        <span class="missing-tag more">+{{ recipe.missing_ingredients|length|add:"-2" }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="ingredients-complete">
+                    <span class="complete-icon">🎉</span>
+                    <span class="complete-text">You have everything needed!</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="recipe-footer">
+                <div class="time-info">
+                    <span class="time-icon">⏱️</span>
+                    <span>{{ recipe.prep_time_minutes }} minutes</span>
+                </div>
+                
+                <div class="recipe-actions">
+                    <a href="/recipe-clicked/{{ recipe.recipe_id }}/" class="action-btn primary">
+                        <span>I'm cooking this</span>
+                        <span class="arrow">👨‍🍳</span>
+                    </a>
+                    <a href="{% url 'recipe-detail' recipe.recipe_id %}" class="action-btn outline">
+                        <span>View recipe</span>
+                        <span class="arrow">→</span>
+                    </a>
+                    
+                    {% if recipe.recipe_id in planned_recipe_ids %}
+                    <button class="action-btn disabled" disabled>
+                        <span>Already planned</span>
+                        <span class="icon">📅</span>
+                    </button>
+                    {% else %}
+                    <a href="{% url 'select-day-for-week' recipe.recipe_id %}" class="action-btn secondary">
+                        <span>Add to week</span>
+                        <span class="icon">➕</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <a href="{% url 'select-day-for-week' recipe.recipe_id %}">
-            <button>➕ Add to week</button>
+    <div class="empty-state">
+        <div class="empty-icon">🍳</div>
+        <h3 class="empty-title">No matching recipes yet</h3>
+        <p class="empty-text">
+            Try adding one more ingredient to get better recommendations
+        </p>
+        <a href="/" class="empty-btn">
+            <span class="btn-text">← Back to pantry</span>
+            <span class="btn-icon">🥬</span>
         </a>
+    </div>
     {% endif %}
+</section>
 
-</div>
-{% endfor %}
-
-{% else %}
-<p>No matching recipes yet — try adding one more ingredient.</p>
-<a href="/">← Back to pantry</a>
-{% endif %}
-
+<!-- ================= LOGIN CTA ================= -->
 {% if show_login_cta %}
-<div style="margin-top:20px; padding:16px; background:#f8f8f8; border-radius:8px;">
-    🔐 <strong>Login to see {{ hidden_count }} more recipes</strong><br>
-    <a href="{% url 'login' %}?next={{ request.path }}">
-        👉 Unlock full recommendations
-    </a>
+<div class="login-cta">
+    <div class="cta-content">
+        <div class="cta-icon">🔒</div>
+        <div class="cta-text">
+            <h3 class="cta-title">Unlock {{ hidden_count }} more recipes!</h3>
+            <p class="cta-subtitle">Login to see personalized recommendations</p>
+        </div>
+        <a href="{% url 'login' %}?next={{ request.path }}" class="cta-btn">
+            <span class="btn-text">Login to unlock</span>
+            <span class="btn-icon">✨</span>
+        </a>
+    </div>
 </div>
 {% endif %}
+
+<style>
+    /* ================= RECOMMENDATIONS STYLES ================= */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --amber-gradient: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+        --bg-surface: #ffffff;
+        --bg-primary: #f8fafc;
+        --border-light: #e2e8f0;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --radius-sm: 12px;
+        --radius-md: 20px;
+        --radius-lg: 28px;
+        --radius-xl: 40px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+        --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+    }
+
+    /* Header */
+    .recommendations-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: var(--radius-lg);
+        padding: 48px;
+        margin-bottom: 48px;
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .recommendations-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: var(--primary-gradient);
+        opacity: 0.05;
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+        margin-bottom: 32px;
+    }
+
+    .header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        padding: 10px 20px;
+        border-radius: var(--radius-xl);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .badge-icon {
+        font-size: 16px;
+    }
+
+    .main-title {
+        font-family: 'Roboto Slab', serif;
+        font-size: 48px;
+        line-height: 1.2;
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+    }
+
+    .gradient-text {
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .header-subtitle {
+        color: var(--text-secondary);
+        font-size: 18px;
+        margin-bottom: 24px;
+    }
+
+    .pantry-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .pantry-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: white;
+        padding: 10px 18px;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        transition: var(--transition);
+    }
+
+    .pantry-tag:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .tag-icon {
+        font-size: 16px;
+    }
+
+    /* Today's Plan Card */
+    .todays-plan-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .todays-plan-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--amber-gradient);
+    }
+
+    .plan-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--amber-gradient);
+        color: white;
+        padding: 8px 20px;
+        border-radius: var(--radius-xl);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 24px;
+    }
+
+    .plan-icon {
+        font-size: 16px;
+    }
+
+    .plan-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+    }
+
+    .plan-left {
+        flex: 1;
+    }
+
+    .plan-title {
+        font-family: 'Roboto Slab', serif;
+        font-size: 28px;
+        margin: 0 0 12px 0;
+        color: var(--text-primary);
+    }
+
+    .plan-meta {
+        display: flex;
+        gap: 20px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 15px;
+    }
+
+    .meta-icon {
+        font-size: 18px;
+    }
+
+    .cook-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--amber-gradient);
+        color: white;
+        padding: 16px 32px;
+        border-radius: var(--radius-md);
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .cook-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Recommendations Section */
+    .recommendations-section {
+        margin: 60px 0;
+    }
+
+    .recommendations-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 32px;
+    }
+
+    /* Recipe Card */
+    .recipe-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+        position: relative;
+        transition: var(--transition);
+    }
+
+    .recipe-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .recipe-card.best-match {
+        border: 2px solid #f6d365;
+        background: linear-gradient(to bottom right, #fff9db, #ffffff);
+    }
+
+    .best-match-badge {
+        position: absolute;
+        top: -12px;
+        left: 24px;
+        background: var(--amber-gradient);
+        color: white;
+        padding: 8px 20px;
+        border-radius: var(--radius-xl);
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .star-icon {
+        font-size: 16px;
+        animation: pulse 2s infinite;
+    }
+
+    /* Recipe Header */
+    .recipe-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .type-badge.community {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .type-badge.official {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .type-icon {
+        font-size: 14px;
+    }
+
+    .recipe-status {
+        display: flex;
+        gap: 8px;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-badge.planned {
+        background: #f0f9ff;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+
+    .status-badge.favorited {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .status-icon {
+        font-size: 12px;
+    }
+
+    /* Recipe Title */
+    .recipe-title {
+        font-family: 'Roboto Slab', serif;
+        font-size: 24px;
+        margin: 0 0 24px 0;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    /* Ingredients Section */
+    .ingredients-section {
+        margin-bottom: 28px;
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .used-tags, .missing-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .used-tag, .missing-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .used-tag {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .missing-tag {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+
+    .used-tag.more, .missing-tag.more {
+        background: var(--bg-primary);
+        color: var(--text-muted);
+        border: 1px solid var(--border-light);
+    }
+
+    .ingredient-icon {
+        font-size: 14px;
+    }
+
+    .ingredients-complete {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #dcfce7;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        border: 1px solid #bbf7d0;
+        margin-top: 16px;
+    }
+
+    .complete-icon {
+        font-size: 20px;
+        animation: bounce 2s infinite;
+    }
+
+    .complete-text {
+        color: #166534;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    /* Recipe Footer */
+    .recipe-footer {
+        padding-top: 24px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .time-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .time-icon {
+        font-size: 16px;
+    }
+
+    .recipe-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        border: 2px solid transparent;
+    }
+
+    .action-btn.primary {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .action-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-btn.outline {
+        background: transparent;
+        border-color: var(--border-light);
+        color: var(--text-primary);
+    }
+
+    .action-btn.outline:hover {
+        border-color: #667eea;
+        background: #f8fafc;
+        transform: translateY(-2px);
+    }
+
+    .action-btn.secondary {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .action-btn.secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(67, 233, 123, 0.3);
+    }
+
+    .action-btn.disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .arrow, .icon {
+        transition: var(--transition);
+    }
+
+    .action-btn:hover .arrow {
+        transform: translateX(4px);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        border: 2px dashed var(--border-light);
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 24px;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .empty-title {
+        font-family: 'Roboto Slab', serif;
+        font-size: 32px;
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+    }
+
+    .empty-text {
+        color: var(--text-secondary);
+        font-size: 16px;
+        max-width: 400px;
+        margin: 0 auto 32px;
+        line-height: 1.6;
+    }
+
+    .empty-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--primary-gradient);
+        color: white;
+        padding: 16px 32px;
+        border-radius: var(--radius-md);
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .empty-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+        gap: 14px;
+    }
+
+    /* Login CTA */
+    .login-cta {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: var(--radius-lg);
+        padding: 40px;
+        margin-top: 60px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-cta::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+
+    .cta-content {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .cta-icon {
+        font-size: 48px;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+    }
+
+    .cta-text {
+        flex: 1;
+    }
+
+    .cta-title {
+        font-family: 'Roboto Slab', serif;
+        font-size: 28px;
+        margin: 0 0 8px 0;
+        color: white;
+    }
+
+    .cta-subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .cta-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        color: #667eea;
+        padding: 16px 32px;
+        border-radius: var(--radius-md);
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .cta-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(255, 255, 255, 0.3);
+        gap: 14px;
+    }
+
+    /* Animations */
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .recommendations-grid {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        }
+        
+        .plan-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .cta-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 24px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .recommendations-header {
+            padding: 32px 24px;
+        }
+        
+        .main-title {
+            font-size: 36px;
+        }
+        
+        .recommendations-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+        
+        .recipe-card {
+            padding: 24px;
+        }
+        
+        .recipe-actions {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .recommendations-header {
+            padding: 24px 20px;
+        }
+        
+        .main-title {
+            font-size: 28px;
+        }
+        
+        .recipe-title {
+            font-size: 20px;
+        }
+        
+        .login-cta {
+            padding: 32px 24px;
+        }
+        
+        .cta-title {
+            font-size: 24px;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Add hover effects to recipe cards
+    const recipeCards = document.querySelectorAll('.recipe-card');
+    recipeCards.forEach(card => {
+        card.addEventListener('mouseenter', function () {
+            this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function () {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Add animation to buttons
+    const buttons = document.querySelectorAll('.action-btn:not(.disabled)');
+    buttons.forEach(btn => {
+        btn.addEventListener('mouseenter', function () {
+            const arrow = this.querySelector('.arrow');
+            if (arrow) {
+                arrow.style.transform = 'translateX(4px)';
+            }
+        });
+        
+        btn.addEventListener('mouseleave', function () {
+            const arrow = this.querySelector('.arrow');
+            if (arrow) {
+                arrow.style.transform = 'translateX(0)';
+            }
+        });
+    });
+    
+    // Add animation to cook button
+    const cookBtn = document.querySelector('.cook-btn');
+    if (cookBtn) {
+        cookBtn.addEventListener('mouseenter', function () {
+            this.querySelector('.btn-icon').style.transform = 'scale(1.2)';
+        });
+        
+        cookBtn.addEventListener('mouseleave', function () {
+            this.querySelector('.btn-icon').style.transform = 'scale(1)';
+        });
+    }
+});
+</script>
 
 {% endblock %}
